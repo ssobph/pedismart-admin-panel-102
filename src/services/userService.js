@@ -66,13 +66,31 @@ export const userService = {
   approveUser: async (userId) => {
     try {
       console.log(`Approving user with ID: ${userId}`);
+      
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+      
       const request = createAuthenticatedRequest();
       const response = await request.put(`/admin/users/${userId}/approve`);
       console.log('Approve response:', response.data);
+      
+      // Validate response structure
+      if (!response.data || !response.data.user) {
+        throw new Error('Invalid response from server - missing user data');
+      }
+      
       return response.data.user;
     } catch (error) {
       console.error(`Error approving user ${userId}:`, error.response?.data || error.message);
-      throw error;
+      
+      // Create a more descriptive error
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to approve user';
+      const enhancedError = new Error(errorMessage);
+      enhancedError.originalError = error;
+      enhancedError.userId = userId;
+      
+      throw enhancedError;
     }
   },
   

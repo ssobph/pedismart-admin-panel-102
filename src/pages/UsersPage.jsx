@@ -86,6 +86,7 @@ const UsersPage = () => {
     try {
       console.log(`Performing ${action} action on user ${userId}`, data);
       setActionInProgress(userId); // Track which user is being modified
+      setError(null); // Clear any previous errors
       
       let updatedUser;
       
@@ -94,52 +95,109 @@ const UsersPage = () => {
           console.log('Calling userService.approveUser');
           updatedUser = await userService.approveUser(userId);
           console.log('User approved:', updatedUser);
+          
+          // Validate the response
+          if (!updatedUser || !updatedUser._id) {
+            throw new Error('Invalid response from server - user data missing');
+          }
           break;
+          
         case 'disapprove':
           console.log('Calling userService.disapproveUser');
           // If no reason is provided, use a default reason
           const disapproveData = data.reason ? data : { reason: 'Disapproved by administrator' };
           updatedUser = await userService.disapproveUser(userId, disapproveData);
           console.log('User disapproved:', updatedUser);
+          
+          // Validate the response
+          if (!updatedUser || !updatedUser._id) {
+            throw new Error('Invalid response from server - user data missing');
+          }
           break;
+          
         case 'delete':
           console.log('Calling userService.deleteUser');
           await userService.deleteUser(userId);
           console.log('User deleted');
-          // Remove user from state
+          
+          // Remove user from state with proper error handling
           setUsers(prevUsers => {
-            const updatedUsers = prevUsers.filter(user => user._id !== userId);
+            if (!Array.isArray(prevUsers)) {
+              console.error('Users state is not an array:', prevUsers);
+              return [];
+            }
+            const updatedUsers = prevUsers.filter(user => user && user._id !== userId);
             // Recalculate stats based on updated users
             updateStats(updatedUsers);
             return updatedUsers;
           });
-          setFilteredUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
+          
+          setFilteredUsers(prevUsers => {
+            if (!Array.isArray(prevUsers)) {
+              console.error('FilteredUsers state is not an array:', prevUsers);
+              return [];
+            }
+            return prevUsers.filter(user => user && user._id !== userId);
+          });
+          
           setActionInProgress(null);
           return;
+          
         default:
+          console.warn(`Unknown action: ${action}`);
           setActionInProgress(null);
           return;
       }
       
-      // Update user in state
+      // Update user in state with proper validation
       setUsers(prevUsers => {
-        const updatedUsers = prevUsers.map(user => 
-          user._id === userId ? updatedUser : user
-        );
+        if (!Array.isArray(prevUsers)) {
+          console.error('Users state is not an array:', prevUsers);
+          return [updatedUser];
+        }
+        
+        const updatedUsers = prevUsers.map(user => {
+          if (!user || !user._id) {
+            console.warn('Invalid user object in state:', user);
+            return user;
+          }
+          return user._id === userId ? { ...user, ...updatedUser } : user;
+        });
+        
         // Recalculate stats based on updated users
         updateStats(updatedUsers);
         return updatedUsers;
       });
       
-      setFilteredUsers(prevUsers => 
-        prevUsers.map(user => 
-          user._id === userId ? updatedUser : user
-        )
-      );
+      setFilteredUsers(prevUsers => {
+        if (!Array.isArray(prevUsers)) {
+          console.error('FilteredUsers state is not an array:', prevUsers);
+          return [updatedUser];
+        }
+        
+        return prevUsers.map(user => {
+          if (!user || !user._id) {
+            console.warn('Invalid user object in filtered state:', user);
+            return user;
+          }
+          return user._id === userId ? { ...user, ...updatedUser } : user;
+        });
+      });
       
     } catch (err) {
       console.error(`Error performing ${action} action:`, err);
-      setError(`Failed to ${action} user. Please try again.`);
+      
+      // Set a more descriptive error message
+      const errorMessage = err.response?.data?.message || err.message || `Failed to ${action} user`;
+      setError(`${errorMessage}. Please try again.`);
+      
+      // Don't let the error break the component - ensure we have valid state
+      if (!Array.isArray(users)) {
+        console.error('Users state corrupted, resetting...');
+        setUsers([]);
+        setFilteredUsers([]);
+      }
+      
     } finally {
       setActionInProgress(null);
     }
@@ -147,33 +205,59 @@ const UsersPage = () => {
 
   // Helper function to update stats based on current users
   const updateStats = (currentUsers) => {
-    const total = currentUsers.length;
-    const approved = currentUsers.filter(user => user.status === "approved").length;
-    const pending = currentUsers.filter(user => user.status === "pending").length;
-    const disapproved = currentUsers.filter(user => user.status === "disapproved").length;
-    const customers = currentUsers.filter(user => user.role === 'customer').length;
-    const riders = currentUsers.filter(user => user.role === 'rider').length;
-    
-    setStats({
-      total,
-      approved,
-      pending,
-      disapproved,
-      customers,
-      riders
-    });
+    try {
+      // Validate input
+      if (!Array.isArray(currentUsers)) {
+        console.warn('updateStats called with non-array:', currentUsers);
+        currentUsers = [];
+      }
+      
+      // Filter out invalid user objects
+      const validUsers = currentUsers.filter(user => user && typeof user === 'object' && user._id);
+      
+      const total = validUsers.length;
+      const approved = validUsers.filter(user => user.status === "approved").length;
+      const pending = validUsers.filter(user => user.status === "pending").length;
+      const disapproved = validUsers.filter(user => user.status === "disapproved").length;
+      const customers = validUsers.filter(user => user.role === 'customer').length;
+      const riders = validUsers.filter(user => user.role === 'rider').length;
+      
+      setStats({
+        total,
+        approved,
+        pending,
+        disapproved,
+        customers,
+        riders
+      });
+    } catch (error) {
+      console.error('Error updating stats:', error);
+      // Set default stats to prevent component crash
+      setStats({
+        total: 0,
+        approved: 0,
+        pending: 0,
+        disapproved: 0,
+        customers: 0,
+        riders: 0
+      });
+    }
   };
 
   // Handle filter changes - apply filters client-side only
   const handleFilterChange = ({ search, role, status, sex, userRole, vehicleType, hasDocuments }) => {
-    // Update filters state
-    setFilters({ search, role, status, sex, userRole, vehicleType, hasDocuments });
-    
-    // Only apply filters if we have users loaded
-    if (users.length === 0) return;
-    
-    // Start with all users
-    let filtered = [...users];
+    try {
+      // Update filters state
+      setFilters({ search, role, status, sex, userRole, vehicleType, hasDocuments });
+      
+      // Validate users array
+      if (!Array.isArray(users) || users.length === 0) {
+        setFilteredUsers([]);
+        return;
+      }
+      
+      // Start with all users - filter out invalid entries
+      let filtered = users.filter(user => user && typeof user === 'object' && user._id);
     
     // Apply search filter
     if (search) {
@@ -228,9 +312,14 @@ const UsersPage = () => {
       }
     }
     
-    // Update filtered users and stats
-    setFilteredUsers(filtered);
-    updateStats(filtered);
+      // Update filtered users and stats
+      setFilteredUsers(filtered);
+      updateStats(filtered);
+    } catch (error) {
+      console.error('Error in handleFilterChange:', error);
+      // Fallback to showing all users if filtering fails
+      setFilteredUsers(Array.isArray(users) ? users : []);
+    }
   };
 
   return (
