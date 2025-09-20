@@ -198,6 +198,11 @@ const UsersPage = () => {
         setFilteredUsers([]);
       }
       
+      // Clear the error after 5 seconds to prevent permanent error state
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
+      
     } finally {
       setActionInProgress(null);
     }

@@ -523,21 +523,26 @@ const UsersTable = ({
             if (updatedUser) {
               console.log('User updated from modal:', updatedUser);
               
-              // Only update if status changed or if it's a penalty update
-              // This prevents infinite update loops
-              const statusChanged = updatedUser.status !== selectedUser.status;
-              const isPenaltyUpdate = updatedUser.penaltyComment !== selectedUser.penaltyComment || 
-                                     updatedUser.penaltyLiftDate !== selectedUser.penaltyLiftDate;
+              // Update the selected user to reflect changes in the modal
+              setSelectedUser(updatedUser);
               
-              // Only trigger parent updates for status changes, not for penalty updates
-              // This prevents the infinite update loop
-              if (statusChanged) {
-                if (updatedUser.status === "approved") {
-                  onApprove(updatedUser._id);
-                } else if (updatedUser.status === "disapproved") {
-                  onDisapprove(updatedUser._id);
-                }
+              // Force a refresh of the users list by calling the parent's filter function
+              // This ensures the table reflects the latest changes
+              if (onFilterChange) {
+                // Trigger a re-filter to refresh the display
+                onFilterChange({
+                  search: searchTerm,
+                  role: roleFilter,
+                  status: statusFilter,
+                  sex: sexFilter,
+                  userRole: userRoleFilter,
+                  vehicleType: vehicleTypeFilter,
+                  hasDocuments: documentFilter === "yes" ? true : documentFilter === "no" ? false : undefined
+                });
               }
+            } else {
+              // User was deleted, close the modal
+              closeUserDetails();
             }
           }}
         />

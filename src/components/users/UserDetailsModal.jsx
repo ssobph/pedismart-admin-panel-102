@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, CheckCircle, XCircle, Trash2, Edit3, Image as ImageIcon, ZoomIn, ZoomOut, Maximize, Minimize, RotateCw, Download } from 'lucide-react';
+import { X, CheckCircle, XCircle, Trash2, Edit3, Image as ImageIcon, ZoomIn, ZoomOut, Maximize, Minimize, RotateCw, Download, AlertCircle, Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { userService } from '../../services/userService';
 import { useTheme } from '../../context/ThemeContext';
@@ -272,11 +272,16 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
       setSuccess(null);
       const updatedUser = await userService.approveUser(user._id);
       console.log('User approved successfully:', updatedUser);
-      onUserUpdated(updatedUser);
-      onClose();
+      setSuccess('User approved successfully!');
+      
+      // Wait a moment to show success message
+      setTimeout(() => {
+        onUserUpdated(updatedUser);
+        onClose();
+      }, 1500);
     } catch (err) {
       console.error('Error in handleApprove:', err);
-      setError('Failed to approve user. Please try again.');
+      setError(err.response?.data?.message || 'Failed to approve user. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -301,11 +306,17 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
       setSuccess(null);
       const updatedUser = await userService.disapproveUser(user._id, { reason: disapproveReason });
       console.log('User disapproved successfully:', updatedUser);
-      onUserUpdated(updatedUser);
-      onClose();
+      setSuccess('User disapproved successfully!');
+      
+      // Wait a moment to show success message
+      setTimeout(() => {
+        onUserUpdated(updatedUser);
+        setShowDisapproveForm(false);
+        onClose();
+      }, 1500);
     } catch (err) {
       console.error('Error in handleDisapprove:', err);
-      setError('Failed to disapprove user. Please try again.');
+      setError(err.response?.data?.message || 'Failed to disapprove user. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -394,12 +405,18 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
       try {
         setLoading(true);
         setError(null);
+        setSuccess(null);
         await userService.deleteUser(user._id);
-        onUserUpdated();
-        onClose();
+        setSuccess('User deleted successfully!');
+        
+        // Wait a moment to show success message
+        setTimeout(() => {
+          onUserUpdated();
+          onClose();
+        }, 1500);
       } catch (err) {
-        setError('Failed to delete user. Please try again.');
-        console.error(err);
+        console.error('Error deleting user:', err);
+        setError(err.response?.data?.message || 'Failed to delete user. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -418,13 +435,21 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
     try {
       setLoading(true);
       setError(null);
+      setSuccess(null);
       const updatedUser = await userService.updateUser(user._id, userData);
       setEditMode(false);
-      setSuccess('User updated successfully');
-      onUserUpdated(updatedUser);
+      setSuccess('User updated successfully!');
+      
+      // Update the user data in the component state
+      Object.assign(user, updatedUser);
+      
+      // Wait a moment to show success message
+      setTimeout(() => {
+        onUserUpdated(updatedUser);
+      }, 1500);
     } catch (err) {
-      setError('Failed to update user. Please try again.');
-      console.error(err);
+      console.error('Error updating user:', err);
+      setError(err.response?.data?.message || 'Failed to update user. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -433,42 +458,65 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 overflow-y-auto py-4">
       <motion.div 
-        className={`rounded-xl p-6 max-w-2xl w-full mx-4 border shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} transition-colors duration-300`}
+        className={`rounded-xl max-w-2xl w-full mx-4 border shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} transition-colors duration-300 max-h-[90vh] flex flex-col`}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
       >
-        <div className="flex justify-between items-center mb-4">
+        {/* Fixed Header */}
+        <div className={`flex justify-between items-center p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
           <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>
             {editMode ? 'Edit User' : showPenaltyForm ? 'Add Penalty Comment' : 'User Details'}
           </h2>
           <button 
             onClick={onClose}
-            className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors`}
+            className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors p-2 rounded-full hover:bg-gray-100 hover:bg-opacity-10 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            aria-label="Close modal"
           >
             <X size={24} />
           </button>
         </div>
 
-        {error && (
-          <div className={`p-3 rounded-lg mb-4 ${isDarkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-800'} transition-colors duration-300`}>
-            {error}
-          </div>
-        )}
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 p-6">
+
+          {error && (
+            <div className={`p-3 rounded-lg mb-4 ${isDarkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-800'} transition-colors duration-300 flex items-center`}>
+              <AlertCircle size={16} className="mr-2 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className={`p-3 rounded-lg mb-4 ${isDarkMode ? 'bg-green-900 text-green-100' : 'bg-green-100 text-green-800'} transition-colors duration-300 flex items-center`}>
+              <CheckCircle size={16} className="mr-2 flex-shrink-0" />
+              <span>{success}</span>
+            </div>
+          )}
 
         {showDisapproveForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[60]">
             <motion.div 
               className={`rounded-lg p-6 max-w-md w-full mx-4 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-xl transition-colors duration-300`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
             >
-              <h3 className={`text-lg font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Disapprove User</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Disapprove User</h3>
+                <button 
+                  onClick={cancelDisapprove}
+                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors p-2 rounded-full hover:bg-gray-100 hover:bg-opacity-10`}
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
               
               {error && (
-                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {error}
+                <div className={`mb-4 p-3 rounded-lg ${isDarkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-800'} flex items-center`}>
+                  <AlertCircle size={16} className="mr-2 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
               
@@ -479,7 +527,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                 <textarea
                   value={disapproveReason}
                   onChange={(e) => setDisapproveReason(e.target.value)}
-                  className={`w-full p-3 border rounded-md ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                   rows="4"
                   placeholder="Enter reason for disapproval..."
                 />
@@ -488,16 +536,24 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={cancelDisapprove}
-                  className={`px-4 py-2 rounded-md ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                  className={`px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDisapprove}
-                  disabled={loading}
-                  className={`px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white`}
+                  disabled={loading || !disapproveReason.trim()}
+                  className={`px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center ${(!disapproveReason.trim() || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'Processing...' : 'Disapprove'}
+                  {loading ? (
+                    <>
+                      <Loader size={16} className="mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Disapprove'
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -505,18 +561,28 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
         )}
 
         {showPenaltyForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[60]">
             <motion.div 
               className={`rounded-lg p-6 max-w-md w-full mx-4 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-xl transition-colors duration-300`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
             >
-              <h3 className={`text-lg font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Add Penalty</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Add Penalty</h3>
+                <button 
+                  onClick={cancelPenaltyComment}
+                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors p-2 rounded-full hover:bg-gray-100 hover:bg-opacity-10`}
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
               
               {error && (
-                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {error}
+                <div className={`mb-4 p-3 rounded-lg ${isDarkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-800'} flex items-center`}>
+                  <AlertCircle size={16} className="mr-2 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
               
@@ -527,7 +593,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                 <textarea
                   value={penaltyComment}
                   onChange={(e) => setPenaltyComment(e.target.value)}
-                  className={`w-full p-3 border rounded-md ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                   rows="4"
                   placeholder="Enter reason for penalty..."
                 />
@@ -541,7 +607,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                   type="date"
                   value={penaltyLiftDate}
                   onChange={(e) => setPenaltyLiftDate(e.target.value)}
-                  className={`w-full p-3 border rounded-md ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
@@ -549,65 +615,31 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={cancelPenaltyComment}
-                  className={`px-4 py-2 rounded-md ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                  className={`px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddPenalty}
-                  disabled={loading}
-                  className={`px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white`}
+                  disabled={loading || !penaltyComment.trim() || !penaltyLiftDate}
+                  className={`px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white transition-colors flex items-center ${(!penaltyComment.trim() || !penaltyLiftDate || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'Saving...' : 'Save Penalty'}
+                  {loading ? (
+                    <>
+                      <Loader size={16} className="mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Penalty'
+                  )}
                 </button>
               </div>
             </motion.div>
           </div>
         )}
 
-        {showPenaltyForm ? (
-          <div className="mb-6">
-            <p className={`mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} transition-colors duration-300`}>
-              Please provide a reason for the user penalty and select when the penalty should be lifted. The user will be banned until this date.
-            </p>
-            <div className="mb-4">
-              <label className={`block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} transition-colors duration-300`}>Penalty Reason</label>
-              <textarea
-                value={penaltyComment}
-                onChange={(e) => setPenaltyComment(e.target.value)}
-                className={`w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-900 border border-gray-300'} transition-colors duration-300`}
-                placeholder="Enter detailed reason for the penalty..."
-              />
-            </div>
-            <div className="mb-4">
-              <label className={`block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} transition-colors duration-300`}>Penalty Lift Date</label>
-              <input
-                type="date"
-                value={penaltyLiftDate}
-                onChange={(e) => setPenaltyLiftDate(e.target.value)}
-                className={`w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-50 text-gray-900 border border-gray-300'} transition-colors duration-300`}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={cancelPenaltyComment}
-                className={`px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddPenalty}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors flex items-center"
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : 'Apply Penalty'}
-              </button>
-            </div>
-          </div>
-
-        ) : editMode ? (
+        {!showPenaltyForm && !showDisapproveForm && editMode ? (
           <form onSubmit={handleUpdate}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -748,7 +780,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               </button>
             </div>
           </form>
-        ) : (
+        ) : !showPenaltyForm && !showDisapproveForm ? (
           <div>
             <div className="grid grid-cols-1 gap-4 mb-6">
               <div className="space-y-3">
@@ -932,7 +964,8 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               </button>
             </div>
           </div>
-        )}
+        ) : null}
+        </div>
       </motion.div>
     </div>
   );
