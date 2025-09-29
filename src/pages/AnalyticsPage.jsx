@@ -7,20 +7,39 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useTheme } from "../context/ThemeContext";
 
-// Import our new analytics components
+// Import our analytics components
 import UserGenderChart from "../components/analytics/UserGenderChart";
 import VehicleTypeChart from "../components/analytics/VehicleTypeChart";
 import RideStatsChart from "../components/analytics/RideStatsChart";
 import AnalyticsOverviewCards from "../components/analytics/AnalyticsOverviewCards";
 import TimeFilter from "../components/analytics/TimeFilter";
 
+// Import new enhanced analytics components
+import TopPerformingRiders from "../components/analytics/TopPerformingRiders";
+import RevenueTrendsChart from "../components/analytics/RevenueTrendsChart";
+import PeakHoursAnalysis from "../components/analytics/PeakHoursAnalysis";
+import PopularRoutes from "../components/analytics/PopularRoutes";
+
 const AnalyticsPage = () => {
 	const { isDarkMode } = useTheme();
-	const [timeFilter, setTimeFilter] = useState("24h");
+	const [timeFilter, setTimeFilter] = useState("all");
 	const [analyticsData, setAnalyticsData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const reportRef = useRef(null);
+
+	// Debug function to check completed rides
+	const debugCompletedRides = async () => {
+		try {
+			console.log('🔍 Debugging completed rides...');
+			const debugData = await analyticsService.getCompletedRidesDebug();
+			console.log('📊 Debug data:', debugData);
+			alert(`Found ${debugData.totalCompletedRides} completed rides. Check console for details.`);
+		} catch (err) {
+			console.error("❌ Debug error:", err);
+			alert('Debug failed. Check console for details.');
+		}
+	};
 
 	// Fetch analytics data
 	const fetchAnalyticsData = async () => {
@@ -29,10 +48,10 @@ const AnalyticsPage = () => {
 			setError(null);
 			const data = await analyticsService.getCombinedAnalytics(timeFilter);
 			setAnalyticsData(data);
-			setLoading(false);
 		} catch (err) {
 			console.error("Error fetching analytics data:", err);
-			setError("Failed to load analytics data. Please try again.");
+			setError("Failed to load analytics data");
+		} finally {
 			setLoading(false);
 		}
 	};
@@ -132,6 +151,12 @@ const AnalyticsPage = () => {
 						{/* Report actions */}
 						<div className="flex gap-2">
 							<button
+								onClick={debugCompletedRides}
+								className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+							>
+								🔍 Debug Rides
+							</button>
+							<button
 								onClick={fetchAnalyticsData}
 								className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
 								disabled={loading}
@@ -193,23 +218,70 @@ const AnalyticsPage = () => {
 							{/* Overview cards */}
 							<AnalyticsOverviewCards data={analyticsData} />
 
-							{/* Charts section */}
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+							{/* Revenue Trends Section */}
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.2 }}
+								className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
+							>
+								<RevenueTrendsChart timeFilter={timeFilter} />
+							</motion.div>
+
+							{/* Top Performers and Analytics Grid */}
+							<div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+								{/* Top Performing Riders */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.3 }}
+									className={`xl:col-span-2 rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
+								>
+									<TopPerformingRiders timeFilter={timeFilter} />
+								</motion.div>
+
 								{/* User gender distribution chart */}
 								<motion.div
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.1 }}
+									transition={{ delay: 0.4 }}
 									className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
 								>
 									<UserGenderChart data={analyticsData.userStats.gender} />
 								</motion.div>
+							</div>
 
+							{/* Peak Hours and Popular Routes */}
+							<div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+								{/* Peak Hours Analysis */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.5 }}
+									className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
+								>
+									<PeakHoursAnalysis timeFilter={timeFilter} />
+								</motion.div>
+
+								{/* Popular Routes */}
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.6 }}
+									className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
+								>
+									<PopularRoutes timeFilter={timeFilter} />
+								</motion.div>
+							</div>
+
+							{/* Traditional Charts Section */}
+							<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 								{/* Vehicle type distribution chart */}
 								<motion.div
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.2 }}
+									transition={{ delay: 0.7 }}
 									className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
 								>
 									<VehicleTypeChart data={analyticsData.vehicleStats} />
@@ -219,8 +291,8 @@ const AnalyticsPage = () => {
 								<motion.div
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.3 }}
-									className={`rounded-xl p-6 lg:col-span-2 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
+									transition={{ delay: 0.8 }}
+									className={`rounded-xl p-6 print:bg-white print:shadow print:border transition-colors duration-300 ${isDarkMode ? 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg' : 'bg-white shadow-lg border border-gray-200'}`}
 								>
 									<RideStatsChart data={analyticsData} />
 								</motion.div>

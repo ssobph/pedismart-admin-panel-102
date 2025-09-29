@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 
 const TimeFilter = ({ currentFilter, onFilterChange }) => {
   const filters = [
+    { id: "all", label: "All Time" },
     { id: "24h", label: "Last 24 Hours" },
     { id: "week", label: "Last Week" },
     { id: "month", label: "Last Month" },
