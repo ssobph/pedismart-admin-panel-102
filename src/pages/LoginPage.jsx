@@ -75,7 +75,7 @@ const LoginPage = () => {
       >
         <div className="flex flex-col items-center justify-center mb-6">
           <img 
-            src="/ecoride_logo.png" 
+            src="/ecoride_logo1_nobg.png" 
             alt="Ecoride Admin Panel" 
             className="h-28 w-auto mb-4"
           />

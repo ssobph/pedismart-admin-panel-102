@@ -52,7 +52,7 @@ const Sidebar = () => {
 							className='flex items-center justify-center mb-2'
 						>
 							<img 
-								src="/ecoride_logo.png" 
+								src="/ecoride_logo1_nobg.png" 
 								alt="Ecoride Admin Panel" 
 								className='h-24 w-auto'
 							/>

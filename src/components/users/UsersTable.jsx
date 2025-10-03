@@ -208,8 +208,8 @@ const UsersTable = ({
                 onChange={handleRoleFilter}
               >
                 <option value="">All Roles</option>
-                <option value="customer">Customers</option>
-                <option value="rider">Riders</option>
+                <option value="customer">Passengers</option>
+                <option value="rider">Drivers</option>
               </select>
             </div>
 
@@ -282,7 +282,7 @@ const UsersTable = ({
                   <option value="">All</option>
                   <option value="Single Motorcycle">Single Motorcycle</option>
                   <option value="Tricycle">Tricycle</option>
-                  <option value="Cab">Cab</option>
+                  <option value="Cab">Four Wheel</option>
                 </select>
               </div>
             )}
