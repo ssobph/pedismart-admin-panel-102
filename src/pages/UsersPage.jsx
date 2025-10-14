@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCheck, UserX, Loader } from "lucide-react";
 import UsersTable from "../components/users/UsersTable";
@@ -250,7 +250,7 @@ const UsersPage = () => {
   };
 
   // Handle filter changes - apply filters client-side only
-  const handleFilterChange = ({ search, role, status, sex, userRole, vehicleType, hasDocuments }) => {
+  const handleFilterChange = useCallback(({ search, role, status, sex, userRole, vehicleType, hasDocuments }) => {
     try {
       // Update filters state
       setFilters({ search, role, status, sex, userRole, vehicleType, hasDocuments });
@@ -317,15 +317,12 @@ const UsersPage = () => {
       }
     }
     
-      // Update filtered users and stats
-      setFilteredUsers(filtered);
-      updateStats(filtered);
+    setFilteredUsers(filtered);
     } catch (error) {
-      console.error('Error in handleFilterChange:', error);
-      // Fallback to showing all users if filtering fails
-      setFilteredUsers(Array.isArray(users) ? users : []);
+      console.error('Error filtering users:', error);
+      setFilteredUsers(users);
     }
-  };
+  }, [users]);
 
   return (
     <div className="container mx-auto px-4 py-8 relative z-10">
@@ -392,7 +389,7 @@ const UsersPage = () => {
             users={filteredUsers} 
             onFilterChange={handleFilterChange}
             onApprove={(id) => handleUserAction('approve', id)}
-            onDisapprove={(id) => handleUserAction('disapprove', id)}
+            onDisapprove={(id, data) => handleUserAction('disapprove', id, data)}
             onDelete={(id) => handleUserAction('delete', id)}
             actionInProgress={actionInProgress}
           />

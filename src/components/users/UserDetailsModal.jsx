@@ -247,9 +247,14 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
   const [editMode, setEditMode] = useState(false);
   const [showDisapproveForm, setShowDisapproveForm] = useState(false);
   const [disapproveReason, setDisapproveReason] = useState('');
+  const [rejectionDeadline, setRejectionDeadline] = useState('');
   const [showPenaltyForm, setShowPenaltyForm] = useState(false);
   const [penaltyComment, setPenaltyComment] = useState('');
   const [penaltyLiftDate, setPenaltyLiftDate] = useState('');
+  
+  // Local state for current user data (updates when user is modified)
+  const [currentUser, setCurrentUser] = useState(user);
+  
   const [userData, setUserData] = useState({
     firstName: user?.firstName || '',
     middleName: user?.middleName || '',
@@ -272,6 +277,10 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
       setSuccess(null);
       const updatedUser = await userService.approveUser(user._id);
       console.log('User approved successfully:', updatedUser);
+      
+      // Update local state
+      setCurrentUser(updatedUser);
+      
       setSuccess('User approved successfully!');
       
       // Wait a moment to show success message
@@ -290,7 +299,42 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
   // Show disapprove form
   const showDisapproveUserForm = () => {
     setDisapproveReason('');
+    setRejectionDeadline('');
     setShowDisapproveForm(true);
+  };
+  
+  // Remove penalty
+  const handleRemovePenalty = async () => {
+    if (!window.confirm('Are you sure you want to remove this penalty?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+      
+      const updatedUser = await userService.addPenalty(user._id, { 
+        penaltyComment: '',
+        penaltyLiftDate: new Date('1970-01-01').toISOString() // Set to past date to remove
+      });
+      
+      console.log('Penalty removed successfully:', updatedUser);
+      
+      // Update local state to show penalty was removed
+      setCurrentUser(updatedUser);
+      setSuccess('Penalty removed successfully!');
+      
+      setTimeout(() => {
+        onUserUpdated(updatedUser);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error('Error removing penalty:', err);
+      setError(err.response?.data?.message || 'Failed to remove penalty. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle disapprove user
@@ -304,18 +348,37 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
       setLoading(true);
       setError(null);
       setSuccess(null);
-      const updatedUser = await userService.disapproveUser(user._id, { reason: disapproveReason });
-      console.log('User disapproved successfully:', updatedUser);
-      setSuccess('User disapproved successfully!');
       
-      // Wait a moment to show success message
+      const requestData = { 
+        reason: disapproveReason,
+        rejectionDeadline: rejectionDeadline || null 
+      };
+      
+      console.log('🚀 Sending disapprove request with data:', requestData);
+      console.log('Reason:', disapproveReason);
+      console.log('Deadline:', rejectionDeadline);
+      
+      const updatedUser = await userService.disapproveUser(user._id, requestData);
+      console.log('✅ User disapproved successfully:', updatedUser);
+      console.log('✅ Returned disapprovalReason:', updatedUser.disapprovalReason);
+      
+      // Update local state to show the saved reason immediately
+      setCurrentUser(updatedUser);
+      
+      // Update the parent component with the new user data
+      onUserUpdated(updatedUser);
+      
+      // Hide the form and show success message
+      setShowDisapproveForm(false);
+      setSuccess('User disapproved successfully! Reason has been saved.');
+      
+      // Keep modal open so user can see the saved reason
+      // Clear success message after a few seconds
       setTimeout(() => {
-        onUserUpdated(updatedUser);
-        setShowDisapproveForm(false);
-        onClose();
-      }, 1500);
+        setSuccess(null);
+      }, 3000);
     } catch (err) {
-      console.error('Error in handleDisapprove:', err);
+      console.error('❌ Error in handleDisapprove:', err);
       setError(err.response?.data?.message || 'Failed to disapprove user. Please try again.');
     } finally {
       setLoading(false);
@@ -326,6 +389,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
   const cancelDisapprove = () => {
     setShowDisapproveForm(false);
     setDisapproveReason('');
+    setRejectionDeadline('');
   };
 
   // Show penalty form
@@ -337,9 +401,10 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
     
     setPenaltyComment(user.penaltyComment || '');
     // Set default lift date to 7 days from now if not already set
+    // Format for datetime-local input: YYYY-MM-DDTHH:mm
     const defaultLiftDate = user.penaltyLiftDate 
-      ? new Date(user.penaltyLiftDate).toISOString().split('T')[0]
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      ? new Date(user.penaltyLiftDate).toISOString().slice(0, 16)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
     setPenaltyLiftDate(defaultLiftDate);
     setShowPenaltyForm(true);
   };
@@ -359,10 +424,22 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
     try {
       setLoading(true);
       setError(null);
-      const updatedUser = await userService.addPenalty(user._id, { 
-        penaltyComment,
-        penaltyLiftDate
+      
+      // Convert datetime-local format to ISO string
+      const liftDateISO = new Date(penaltyLiftDate).toISOString();
+      
+      console.log('Sending penalty data:', {
+        penaltyComment: penaltyComment.trim(),
+        penaltyLiftDate: liftDateISO
       });
+      
+      const updatedUser = await userService.addPenalty(user._id, { 
+        penaltyComment: penaltyComment.trim(),
+        penaltyLiftDate: liftDateISO
+      });
+      
+      // Update local state to show the saved penalty immediately
+      setCurrentUser(updatedUser);
       
       // Update the local user object with the updated data
       const updatedUserData = {
@@ -426,17 +503,49 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`📝 Field changed: ${name} = ${value}`);
     setUserData({ ...userData, [name]: value });
+    console.log('📝 Updated userData:', { ...userData, [name]: value });
   };
 
   // Handle update user
   const handleUpdate = async (e) => {
     e.preventDefault();
+    console.log('🔄 handleUpdate called');
+    console.log('📝 User data being sent:', userData);
+    console.log('👤 User ID:', user._id);
+    
     try {
       setLoading(true);
       setError(null);
       setSuccess(null);
-      const updatedUser = await userService.updateUser(user._id, userData);
+      
+      // Prepare data to send - only include role-specific fields
+      const dataToSend = {
+        firstName: userData.firstName,
+        middleName: userData.middleName,
+        lastName: userData.lastName,
+        email: userData.email,
+        phone: userData.phone,
+        sex: userData.sex,
+        role: userData.role
+      };
+      
+      // Add role-specific fields
+      if (userData.role === 'customer') {
+        dataToSend.userRole = userData.userRole;
+        dataToSend.schoolId = userData.schoolId;
+      } else if (userData.role === 'rider') {
+        dataToSend.licenseId = userData.licenseId;
+        dataToSend.vehicleType = userData.vehicleType;
+      }
+      
+      console.log('📤 Sending update request with filtered data:', dataToSend);
+      const updatedUser = await userService.updateUser(user._id, dataToSend);
+      console.log('✅ Update successful:', updatedUser);
+      
+      // Update local state
+      setCurrentUser(updatedUser);
       setEditMode(false);
       setSuccess('User updated successfully!');
       
@@ -448,7 +557,8 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
         onUserUpdated(updatedUser);
       }, 1500);
     } catch (err) {
-      console.error('Error updating user:', err);
+      console.error('❌ Error updating user:', err);
+      console.error('❌ Error response:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to update user. Please try again.');
     } finally {
       setLoading(false);
@@ -503,7 +613,9 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               exit={{ opacity: 0, scale: 0.9 }}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Disapprove User</h3>
+                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {user.disapprovalReason ? 'Edit Disapproval Reason' : 'Disapprove User'}
+                </h3>
                 <button 
                   onClick={cancelDisapprove}
                   className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors p-2 rounded-full hover:bg-gray-100 hover:bg-opacity-10`}
@@ -520,7 +632,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                 </div>
               )}
               
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className={`block mb-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Reason for Disapproval
                 </label>
@@ -531,6 +643,22 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                   rows="4"
                   placeholder="Enter reason for disapproval..."
                 />
+              </div>
+              
+              <div className="mb-6">
+                <label className={`block mb-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Auto-Unblock Deadline (Optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={rejectionDeadline}
+                  onChange={(e) => setRejectionDeadline(e.target.value)}
+                  className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                  placeholder="Select deadline for automatic unblock..."
+                />
+                <p className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  If set, the user will be automatically approved after this date/time
+                </p>
               </div>
               
               <div className="flex justify-end space-x-3">
@@ -569,7 +697,9 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               exit={{ opacity: 0, scale: 0.9 }}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Add Penalty</h3>
+                <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {user.penaltyComment ? 'Edit Penalty' : 'Add Penalty'}
+                </h3>
                 <button 
                   onClick={cancelPenaltyComment}
                   className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'} transition-colors p-2 rounded-full hover:bg-gray-100 hover:bg-opacity-10`}
@@ -601,39 +731,53 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
               
               <div className="mb-6">
                 <label className={`block mb-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Penalty Lift Date
+                  Penalty Lift Date & Time
                 </label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={penaltyLiftDate}
                   onChange={(e) => setPenaltyLiftDate(e.target.value)}
                   className={`w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  min={new Date().toISOString().split('T')[0]}
                 />
+                <p className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  User will be automatically unblocked after this date/time
+                </p>
               </div>
               
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={cancelPenaltyComment}
-                  className={`px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddPenalty}
-                  disabled={loading || !penaltyComment.trim() || !penaltyLiftDate}
-                  className={`px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white transition-colors flex items-center ${(!penaltyComment.trim() || !penaltyLiftDate || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {loading ? (
-                    <>
-                      <Loader size={16} className="mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Penalty'
-                  )}
-                </button>
+              <div className="flex justify-between items-center">
+                {user.penaltyComment && (
+                  <button
+                    onClick={handleRemovePenalty}
+                    disabled={loading}
+                    className={`px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    Remove Penalty
+                  </button>
+                )}
+                <div className="flex space-x-3 ml-auto">
+                  <button
+                    onClick={cancelPenaltyComment}
+                    className={`px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddPenalty}
+                    disabled={loading || !penaltyComment.trim() || !penaltyLiftDate}
+                    className={`px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white transition-colors flex items-center ${(!penaltyComment.trim() || !penaltyLiftDate || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader size={16} className="mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Penalty'
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -814,24 +958,62 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                      "Pending"}
                   </p>
                 </div>
-                {user.status === "disapproved" && user.disapprovalReason && (
-                  <div>
-                    <h3 className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} transition-colors duration-300`}>Disapproval Reason</h3>
-                    <p className={`${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>{user.disapprovalReason}</p>
+                {currentUser.status === "disapproved" && currentUser.disapprovalReason && (
+                  <div className="mt-2 p-3 rounded-lg border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className={`text-sm font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'} transition-colors duration-300`}>Disapproval Reason</h3>
+                        <p className={`mt-1 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>{currentUser.disapprovalReason}</p>
+                        {currentUser.rejectionDeadline && (
+                          <div className="mt-2">
+                            <span className={`text-sm font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'} transition-colors duration-300`}>Auto-unblock: </span>
+                            <span className={`${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>
+                              {new Date(currentUser.rejectionDeadline).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setDisapproveReason(currentUser.disapprovalReason);
+                          setRejectionDeadline(currentUser.rejectionDeadline ? new Date(currentUser.rejectionDeadline).toISOString().slice(0, 16) : '');
+                          setShowDisapproveForm(true);
+                        }}
+                        className={`ml-2 p-2 rounded-md transition-colors ${isDarkMode ? 'hover:bg-yellow-800' : 'hover:bg-yellow-100'}`}
+                        title="Edit disapproval reason"
+                      >
+                        <Edit3 size={16} className={isDarkMode ? 'text-yellow-300' : 'text-yellow-600'} />
+                      </button>
+                    </div>
                   </div>
                 )}
-                {user.penaltyComment && (
+                {currentUser.penaltyComment && (
                   <div className="mt-2 p-3 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
-                    <h3 className={`text-sm font-medium ${isDarkMode ? 'text-red-300' : 'text-red-600'} transition-colors duration-300`}>Penalty Information</h3>
-                    <p className={`mt-1 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>{user.penaltyComment}</p>
-                    {user.penaltyLiftDate && (
-                      <div className="mt-2">
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-red-300' : 'text-red-600'} transition-colors duration-300`}>Banned until: </span>
-                        <span className={`${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>
-                          {new Date(user.penaltyLiftDate).toLocaleDateString()}
-                        </span>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className={`text-sm font-medium ${isDarkMode ? 'text-red-300' : 'text-red-600'} transition-colors duration-300`}>Penalty Information</h3>
+                        <p className={`mt-1 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>{currentUser.penaltyComment}</p>
+                        {currentUser.penaltyLiftDate && (
+                          <div className="mt-2">
+                            <span className={`text-sm font-medium ${isDarkMode ? 'text-red-300' : 'text-red-600'} transition-colors duration-300`}>Banned until: </span>
+                            <span className={`${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>
+                              {new Date(currentUser.penaltyLiftDate).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      <button
+                        onClick={() => {
+                          setPenaltyComment(currentUser.penaltyComment);
+                          setPenaltyLiftDate(currentUser.penaltyLiftDate ? new Date(currentUser.penaltyLiftDate).toISOString().slice(0, 16) : '');
+                          setShowPenaltyForm(true);
+                        }}
+                        className={`ml-2 p-2 rounded-md transition-colors ${isDarkMode ? 'hover:bg-red-800' : 'hover:bg-red-100'}`}
+                        title="Edit penalty"
+                      >
+                        <Edit3 size={16} className={isDarkMode ? 'text-red-300' : 'text-red-600'} />
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div>
