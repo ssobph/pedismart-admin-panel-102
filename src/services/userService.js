@@ -155,5 +155,49 @@ export const userService = {
       console.error(`Error deleting user ${userId}:`, error.response?.data || error.message);
       throw error;
     }
+  },
+  
+  // Get current user profile
+  getProfile: async () => {
+    try {
+      const request = createAuthenticatedRequest();
+      // Get admin ID from localStorage
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      const adminId = adminUser._id;
+      
+      if (!adminId) {
+        throw new Error('Admin ID not found. Please log in again.');
+      }
+      
+      const response = await request.get(`/api/admin-management/admins/${adminId}`);
+      console.log('Profile data received:', response.data);
+      return response.data.admin;
+    } catch (error) {
+      console.error('Error fetching profile:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Update current user profile
+  updateProfile: async (profileData) => {
+    try {
+      console.log('Updating profile with data:', profileData);
+      const request = createAuthenticatedRequest();
+      
+      // Get admin ID from localStorage
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      const adminId = adminUser._id;
+      
+      if (!adminId) {
+        throw new Error('Admin ID not found. Please log in again.');
+      }
+      
+      const response = await request.put(`/api/admin-management/admins/${adminId}`, profileData);
+      console.log('Profile update response:', response.data);
+      return response.data.admin;
+    } catch (error) {
+      console.error('Error updating profile:', error.response?.data || error.message);
+      throw error;
+    }
   }
 };

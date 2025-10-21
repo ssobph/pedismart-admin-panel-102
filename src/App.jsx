@@ -12,6 +12,9 @@ import OrdersPage from "./pages/OrdersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
+import RideHistoryPage from "./pages/RideHistoryPage";
+import AdminManagementPage from "./pages/AdminManagementPage";
+import ActivityLogPage from "./pages/ActivityLogPage";
 
 // Layout component for authenticated pages
 const DashboardLayout = () => {
@@ -43,9 +46,12 @@ function App() {
 				<Route element={<DashboardLayout />}>
 					<Route path="/" element={<OverviewPage />} />
 					<Route path="/users" element={<UsersPage />} />
+					<Route path="/rides" element={<RideHistoryPage />} />
 					<Route path="/sales" element={<SalesPage />} />
 					<Route path="/orders" element={<OrdersPage />} />
 					<Route path="/analytics" element={<AnalyticsPage />} />
+					<Route path="/activity-log" element={<ActivityLogPage />} />
+					<Route path="/admin-management" element={<AdminManagementPage />} />
 					<Route path="/settings" element={<SettingsPage />} />
 				</Route>
 			</Route>

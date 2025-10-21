@@ -52,19 +52,21 @@ const OverviewPage = () => {
         console.log("Overview stats response:", response);
         const users = response.users || [];
         
-        // Calculate statistics
+        // Calculate statistics - using same logic as UsersPage
         const totalUsers = users.length;
         const totalDrivers = users.filter(user => user.role === 'rider').length;
         const totalPassengers = users.filter(user => user.role === 'customer').length;
-        const approvedUsers = users.filter(user => user.approved).length;
-        const unapprovedUsers = totalUsers - approvedUsers;
+        
+        // Count ALL pending users (both riders and customers) - same as UsersPage
+        const pendingUsers = users.filter(user => user.status === 'pending').length;
+        const approvedUsers = users.filter(user => user.status === 'approved').length;
         
         setStats({
           totalUsers,
           totalDrivers,
           totalPassengers,
           approvedUsers,
-          unapprovedUsers,
+          unapprovedUsers: pendingUsers, // Count all pending users (same as UsersPage)
           loading: false,
           error: null
         });

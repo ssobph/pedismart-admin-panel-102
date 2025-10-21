@@ -50,13 +50,20 @@ export const AuthProvider = ({ children }) => {
     navigate("/login");
   };
 
+  // Update user function
+  const updateUser = (updatedUserData) => {
+    setCurrentUser(updatedUserData);
+    localStorage.setItem('admin_user', JSON.stringify(updatedUserData));
+  };
+
   // Auth context value
   const value = {
     isAuthenticated,
     isLoading,
     currentUser,
     login,
-    logout
+    logout,
+    updateUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

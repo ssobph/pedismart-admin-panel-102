@@ -1,4 +1,4 @@
-import { BarChart2, DollarSign, Menu, Settings, ShoppingBag, ShoppingCart, TrendingUp, Users, LogOut, Sun, Moon } from "lucide-react";
+import { BarChart2, DollarSign, Menu, Settings, ShoppingBag, ShoppingCart, TrendingUp, Users, LogOut, Sun, Moon, Car, Shield, FileText } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -14,16 +14,30 @@ const SIDEBAR_ITEMS = [
 	},
 	// { name: "Products", icon: ShoppingBag, color: "#8B5CF6", href: "/products" },
 	{ name: "User Management", icon: Users, color: "#EC4899", href: "/users" },
+	{ name: "Ride History", icon: Car, color: "#10B981", href: "/rides" },
 	//{ name: "Finance", icon: DollarSign, color: "#10B981", href: "/sales" },
 	//{ name: "Orders", icon: ShoppingCart, color: "#F59E0B", href: "/orders" },
 	{ name: "Analytics", icon: TrendingUp, color: "#3B82F6", href: "/analytics" },
+	{ name: "Activity Log", icon: FileText, color: "#F59E0B", href: "/activity-log" },
+	{ name: "Admin Management", icon: Shield, color: "#8B5CF6", href: "/admin-management", superAdminOnly: true },
 	{ name: "Settings", icon: Settings, color: "#6EE7B7", href: "/settings" },
 ];
 
 const Sidebar = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const { logout } = useAuth();
+	const { logout, currentUser } = useAuth();
 	const { isDarkMode, toggleTheme } = useTheme();
+
+	// Check if current user is super-admin
+	const isSuperAdmin = currentUser?.role === 'super-admin' || currentUser?.adminRole === 'super-admin';
+
+	// Filter sidebar items based on user role
+	const filteredSidebarItems = SIDEBAR_ITEMS.filter(item => {
+		if (item.superAdminOnly) {
+			return isSuperAdmin;
+		}
+		return true;
+	});
 
 	return (
 		<motion.div
@@ -49,19 +63,35 @@ const Sidebar = () => {
 							initial={{ opacity: 0, scale: 0.8 }}
 							animate={{ opacity: 1, scale: 1 }}
 							exit={{ opacity: 0, scale: 0.8 }}
-							className='flex items-center justify-center mb-2'
+							className='flex flex-col items-center justify-center mb-2'
 						>
 							<img 
 								src="/ecoride_logo1_nobg.png" 
 								alt="Ecoride Admin Panel" 
 								className='h-24 w-auto'
 							/>
+							{/* Admin Name Display */}
+							{currentUser && (
+								<div className={`mt-2 text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+									<p className="text-xs font-medium">Welcome Admin</p>
+									<p className="text-sm font-bold">{currentUser.name || currentUser.username}</p>
+									{currentUser.role === 'super-admin' || currentUser.adminRole === 'super-admin' ? (
+										<span className="inline-block mt-1 px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded-full">
+											Super Admin
+										</span>
+									) : (
+										<span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+											Admin
+										</span>
+									)}
+								</div>
+							)}
 						</motion.div>
 					)}
 				</AnimatePresence>
 
 				<nav className='mt-2 flex-grow'>
-					{SIDEBAR_ITEMS.map((item) => (
+					{filteredSidebarItems.map((item) => (
 						<Link key={item.href} to={item.href}>
 							<motion.div className={`flex items-center p-4 text-sm font-medium rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} transition-colors mb-2`}>
 								<item.icon size={20} style={{ color: item.color, minWidth: "20px" }} />
