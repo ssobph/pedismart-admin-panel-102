@@ -88,7 +88,7 @@ const OverviewPage = () => {
       <div className="mb-8">
         <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>Dashboard Overview</h1>
         <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} transition-colors duration-300`}>
-          Welcome to the EcoRide admin dashboard
+          Welcome to the PediSmart admin dashboard
         </p>
       </div>
 
@@ -138,9 +138,9 @@ const OverviewPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
-        <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>Welcome to EcoRide Admin Dashboard</h2>
+        <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>Welcome to PediSmart Admin Dashboard</h2>
         <p className={`mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} transition-colors duration-300`}>
-          This dashboard allows you to manage users, view statistics, and monitor the EcoRide platform.
+          This dashboard allows you to manage users, view statistics, and monitor the PediSmart platform.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700 bg-opacity-50' : 'bg-gray-100'} transition-colors duration-300`}>

@@ -82,8 +82,8 @@ const LoginPage = () => {
       >
         <div className="flex flex-col items-center justify-center mb-6">
           <img 
-            src="/ecoride_logo1_nobg.png" 
-            alt="Ecoride Admin Panel" 
+            src="/pedismart_logo.png" 
+            alt="PediSmart Admin Panel" 
             className="h-28 w-auto mb-4"
           />
           <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'} transition-colors duration-300`}>Admin Login</h2>

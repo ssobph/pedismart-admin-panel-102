@@ -78,7 +78,7 @@ const AnalyticsPage = () => {
 			const image = canvas.toDataURL("image/png");
 			const link = document.createElement("a");
 			link.href = image;
-			link.download = `ecoride-analytics-${timeFilter}-${new Date().toISOString().slice(0, 10)}.png`;
+			link.download = `pedismart-analytics-${timeFilter}-${new Date().toISOString().slice(0, 10)}.png`;
 			link.click();
 		} catch (err) {
 			console.error("Error generating report:", err);
@@ -115,7 +115,7 @@ const AnalyticsPage = () => {
 			pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
 			// Save PDF
-			pdf.save(`ecoride-analytics-${timeFilter}-${new Date().toISOString().slice(0, 10)}.pdf`);
+			pdf.save(`pedismart-analytics-${timeFilter}-${new Date().toISOString().slice(0, 10)}.pdf`);
 		} catch (err) {
 			console.error("Error generating PDF report:", err);
 			alert("Failed to generate PDF report. Please try again.");
@@ -135,7 +135,7 @@ const AnalyticsPage = () => {
 				{/* Controls section */}
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 print:hidden">
 					<div>
-						<h1 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'} transition-colors duration-300`}>EcoRide Analytics</h1>
+						<h1 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'} transition-colors duration-300`}>PediSmart Analytics</h1>
 						<p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} transition-colors duration-300`}>
 							Comprehensive data on users, rides, and vehicle usage
 						</p>
@@ -191,7 +191,7 @@ const AnalyticsPage = () => {
 				>
 					{/* Report header - only visible when printing */}
 					<div className="hidden print:block mb-6">
-						<h1 className="text-3xl font-bold text-center">EcoRide Analytics Report</h1>
+						<h1 className="text-3xl font-bold text-center">PediSmart Analytics Report</h1>
 						<p className="text-center text-gray-600">
 							Generated on {new Date().toLocaleDateString()} for period:{" "}
 							{timeFilter === "24h"
@@ -301,7 +301,7 @@ const AnalyticsPage = () => {
 							{/* Report footer - only visible when printing */}
 							<div className="hidden print:block mt-8 pt-4 border-t border-gray-300">
 								<p className="text-center text-gray-600">
-									© {new Date().getFullYear()} EcoRide Admin Dashboard
+									© {new Date().getFullYear()} PediSmart Admin Dashboard
 								</p>
 							</div>
 						</div>

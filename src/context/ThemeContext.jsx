@@ -7,13 +7,13 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
   // Check if there's a saved theme preference in localStorage
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem("ecoride-admin-theme");
+    const savedTheme = localStorage.getItem("pedismart-admin-theme");
     return savedTheme || "dark"; // Default to dark theme if no preference is saved
   });
 
   // Update the theme in localStorage and apply the theme class to the document
   useEffect(() => {
-    localStorage.setItem("ecoride-admin-theme", theme);
+    localStorage.setItem("pedismart-admin-theme", theme);
     
     // Apply the theme class to the document element
     const root = document.documentElement;

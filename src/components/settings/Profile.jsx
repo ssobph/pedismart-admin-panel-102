@@ -53,7 +53,7 @@ const Profile = () => {
 		? profileData.name || 'System Admin'
 		: 'System Admin';
 
-	const displayEmail = profileData?.email || currentUser?.email || 'ecoride.admin@gmail.com';
+	const displayEmail = profileData?.email || currentUser?.email || 'pedismart.admin@gmail.com';
 
 	return (
 		<>
@@ -68,7 +68,7 @@ const Profile = () => {
 						<div className='flex flex-col sm:flex-row items-center mb-6'>
 							<div className="relative mb-4 sm:mb-0 sm:mr-6">
 								<img
-									src='/ecoride_logo1_nobg.png'
+									src='/pedismart_logo.png'
 									alt='Profile'
 									className='rounded-full w-24 h-24 object-cover border-4 border-indigo-600 shadow-lg'
 								/>
