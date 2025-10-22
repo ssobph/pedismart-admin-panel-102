@@ -10,56 +10,56 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const VehicleTypeChart = ({ data }) => {
   const { isDarkMode } = useTheme();
   
-  // Extract data for rider vehicle types
-  const motorcycleCount = data.riders["Single Motorcycle"] || 0;
+  // Extract data for rider vehicle types (only Tricycle is active)
+  // const motorcycleCount = data.riders["Single Motorcycle"] || 0; // Commented out: Only using Tricycle
   const tricycleCount = data.riders["Tricycle"] || 0;
-  const cabCount = data.riders["Cab"] || 0;
+  // const cabCount = data.riders["Cab"] || 0; // Commented out: Only using Tricycle
   
-  // Extract data for ride vehicle types
-  const singleMotorcycleRides = data.rides["Single Motorcycle"]?.count || 0;
+  // Extract data for ride vehicle types (only Tricycle is active)
+  // const singleMotorcycleRides = data.rides["Single Motorcycle"]?.count || 0; // Commented out: Only using Tricycle
   const tricycleRides = data.rides["Tricycle"]?.count || 0;
-  const cabRides = data.rides["Cab"]?.count || 0;
+  // const cabRides = data.rides["Cab"]?.count || 0; // Commented out: Only using Tricycle
 
-  // Prepare chart data for rider vehicle types
+  // Prepare chart data for rider vehicle types (only Tricycle is active)
   const riderChartData = {
-    labels: ["Motorcycle", "Tricycle", "Cab"],
+    labels: ["Tricycle"], // Commented out: "Motorcycle", "Cab"
     datasets: [
       {
         label: "Rider Vehicle Types",
-        data: [motorcycleCount, tricycleCount, cabCount],
+        data: [tricycleCount], // Commented out: motorcycleCount, cabCount
         backgroundColor: [
-          "rgba(255, 159, 64, 0.8)",
+          // "rgba(255, 159, 64, 0.8)", // Commented out: Only using Tricycle
           "rgba(75, 192, 192, 0.8)",
-          "rgba(153, 102, 255, 0.8)",
+          // "rgba(153, 102, 255, 0.8)", // Commented out: Only using Tricycle
         ],
         borderColor: [
-          "rgba(255, 159, 64, 1)",
+          // "rgba(255, 159, 64, 1)", // Commented out: Only using Tricycle
           "rgba(75, 192, 192, 1)",
-          "rgba(153, 102, 255, 1)",
+          // "rgba(153, 102, 255, 1)", // Commented out: Only using Tricycle
         ],
         borderWidth: 1,
       },
     ],
   };
 
-  // Prepare chart data for ride vehicle types
+  // Prepare chart data for ride vehicle types (only Tricycle is active)
   const rideChartData = {
-    labels: ["Single Motorcycle", "Tricycle", "Cab"],
+    labels: ["Tricycle"], // Commented out: "Single Motorcycle", "Cab"
     datasets: [
       {
         label: "Ride Vehicle Types",
-        data: [singleMotorcycleRides, tricycleRides, cabRides],
+        data: [tricycleRides], // Commented out: singleMotorcycleRides, cabRides
         backgroundColor: [
-          "rgba(255, 206, 86, 0.8)",
+          // "rgba(255, 206, 86, 0.8)", // Commented out: Only using Tricycle
           "rgba(54, 162, 235, 0.8)",
-          "rgba(255, 99, 132, 0.8)",
-          "rgba(75, 192, 192, 0.8)",
+          // "rgba(255, 99, 132, 0.8)", // Commented out: Only using Tricycle
+          // "rgba(75, 192, 192, 0.8)", // Commented out: Only using Tricycle
         ],
         borderColor: [
-          "rgba(255, 206, 86, 1)",
+          // "rgba(255, 206, 86, 1)", // Commented out: Only using Tricycle
           "rgba(54, 162, 235, 1)",
-          "rgba(255, 99, 132, 1)",
-          "rgba(75, 192, 192, 1)",
+          // "rgba(255, 99, 132, 1)", // Commented out: Only using Tricycle
+          // "rgba(75, 192, 192, 1)", // Commented out: Only using Tricycle
         ],
         borderWidth: 1,
       },
@@ -106,15 +106,16 @@ const VehicleTypeChart = ({ data }) => {
           <div className="h-48">
             <Doughnut data={riderChartData} options={options} />
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-            <div>
+          <div className="mt-2 grid grid-cols-1 gap-2 text-center">
+            {/* Commented out: Only using Tricycle */}
+            {/* <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Motorcycle</p>
               <p className={`text-sm font-medium print:text-gray-900 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{motorcycleCount}</p>
-            </div>
+            </div> */}
             <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -123,14 +124,15 @@ const VehicleTypeChart = ({ data }) => {
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{tricycleCount}</p>
             </div>
-            <div>
+            {/* Commented out: Only using Tricycle */}
+            {/* <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Cab</p>
               <p className={`text-sm font-medium print:text-gray-900 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{cabCount}</p>
-            </div>
+            </div> */}
           </div>
         </motion.div>
 
@@ -147,15 +149,16 @@ const VehicleTypeChart = ({ data }) => {
           <div className="h-48">
             <Doughnut data={rideChartData} options={options} />
           </div>
-          <div className="mt-2 grid grid-cols-4 gap-2 text-center">
-            <div>
+          <div className="mt-2 grid grid-cols-1 gap-2 text-center">
+            {/* Commented out: Only using Tricycle */}
+            {/* <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Single Motorcycle</p>
               <p className={`text-sm font-medium print:text-gray-900 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{singleMotorcycleRides}</p>
-            </div>
+            </div> */}
             <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -164,14 +167,15 @@ const VehicleTypeChart = ({ data }) => {
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{tricycleRides}</p>
             </div>
-            <div>
+            {/* Commented out: Only using Tricycle */}
+            {/* <div>
               <p className={`text-xs print:text-gray-600 transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Cab</p>
               <p className={`text-sm font-medium print:text-gray-900 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>{cabRides}</p>
-            </div>
+            </div> */}
           </div>
         </motion.div>
       </div>
