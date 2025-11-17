@@ -265,8 +265,6 @@ const UsersTable = ({
                 >
                   <option value="">All</option>
                   <option value="Student">Student</option>
-                  <option value="Faculty">Faculty</option>
-                  <option value="Staff">Staff</option>
                 </select>
               </div>
             )}
@@ -410,11 +408,6 @@ const UsersTable = ({
                           <CheckCircle className="h-3 w-3 mr-1" /> School ID
                         </span>
                       )}
-                      {(user.role === "customer" && user.userRole && (user.userRole === "Faculty" || user.userRole === "Staff") && user.staffFacultyIdDocument) && (
-                        <span className="text-xs text-green-400 flex items-center">
-                          <CheckCircle className="h-3 w-3 mr-1" /> Staff/Faculty ID
-                        </span>
-                      )}
                       {(user.role === "rider" && user.driverLicense) && (
                         <span className="text-xs text-green-400 flex items-center">
                           <CheckCircle className="h-3 w-3 mr-1" /> License
@@ -425,7 +418,7 @@ const UsersTable = ({
                           <CheckCircle className="h-3 w-3 mr-1" /> COR
                         </span>
                       )}
-                      {!user.photo && !user.schoolIdDocument && !user.staffFacultyIdDocument && !user.driverLicense && !user.cor && (
+                      {!user.photo && !user.schoolIdDocument && !user.driverLicense && !user.cor && (
                         <span className="text-xs text-gray-400">
                           No documents
                         </span>

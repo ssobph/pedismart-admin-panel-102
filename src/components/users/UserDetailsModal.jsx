@@ -860,8 +860,6 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                   >
                     <option value="">Select</option>
                     <option value="Student">Student</option>
-                    <option value="Faculty">Faculty</option>
-                    <option value="Staff">Staff</option>
                   </select>
                 </div>
               )}
@@ -1068,9 +1066,6 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                 {user.role === 'customer' && (
                   <>
                     <ImageViewer url={user.schoolIdDocument} title="School ID Document" />
-                    {user.userRole === 'Faculty' || user.userRole === 'Staff' ? (
-                      <ImageViewer url={user.staffFacultyIdDocument} title="Staff/Faculty ID Document" />
-                    ) : null}
                   </>
                 )}
                 
@@ -1082,7 +1077,7 @@ const UserDetailsModal = ({ user, onClose, onUserUpdated }) => {
                   </>
                 )}
                 
-                {!user.photo && !user.schoolIdDocument && !user.staffFacultyIdDocument && 
+                {!user.photo && !user.schoolIdDocument && 
                  !user.driverLicense && !user.cor && (
                   <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} transition-colors duration-300`}>
                     No documents uploaded

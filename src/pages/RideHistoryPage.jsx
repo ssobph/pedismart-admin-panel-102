@@ -4,7 +4,6 @@ import {
   Car, 
   MapPin, 
   Calendar, 
-  DollarSign, 
   User, 
   Phone, 
   Hash, 
@@ -15,6 +14,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Users,
   Navigation
 } from "lucide-react";
 import { rideService } from "../services/rideService";
@@ -343,24 +343,18 @@ const RideHistoryPage = () => {
                   )}
                 </div>
 
-                {/* Fare & OTP */}
-                <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700 bg-opacity-50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center mb-2">
-                    <DollarSign size={16} className={`mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Fare</span>
-                  </div>
-                  <p className={`font-semibold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                    ₱{ride.fare.toFixed(2)}
-                  </p>
-                  {ride.otp && (
-                    <div className="flex items-center mt-2">
-                      <Hash size={14} className={`mr-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                      <span className={`text-sm font-mono ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                        OTP: {ride.otp}
-                      </span>
+                {/* OTP */}
+                {ride.otp && (
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700 bg-opacity-50' : 'bg-gray-50'}`}>
+                    <div className="flex items-center mb-2">
+                      <Hash size={16} className={`mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>OTP</span>
                     </div>
-                  )}
-                </div>
+                    <p className={`font-semibold text-lg font-mono ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {ride.otp}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Locations */}
@@ -393,6 +387,77 @@ const RideHistoryPage = () => {
               <div className={`mt-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 <span className="font-medium">Distance:</span> {formatDistance(ride.distance)}
               </div>
+
+              {/* Passengers Section */}
+              {ride.passengers && ride.passengers.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center mb-3">
+                    <Users size={18} className={`mr-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                      Passengers ({ride.currentPassengerCount || ride.passengers.length}/{ride.maxPassengers || 6})
+                    </h4>
+                  </div>
+                  <div className="space-y-2">
+                    {ride.passengers.map((passenger, index) => (
+                      <div 
+                        key={passenger._id || index}
+                        className={`p-3 rounded-lg border ${
+                          isDarkMode 
+                            ? 'bg-gray-700 bg-opacity-30 border-gray-600' 
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <User size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+                              <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                                {passenger.firstName} {passenger.lastName}
+                                {passenger.isOriginalBooker && (
+                                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                                    isDarkMode 
+                                      ? 'bg-blue-900 text-blue-300' 
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    Original Booker
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            {passenger.phone && (
+                              <div className="flex items-center mt-1 ml-5">
+                                <Phone size={12} className={`mr-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`} />
+                                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {passenger.phone}
+                                </span>
+                              </div>
+                            )}
+                            {passenger.joinedAt && (
+                              <div className="flex items-center mt-1 ml-5">
+                                <Clock size={12} className={`mr-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`} />
+                                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  Joined: {new Date(passenger.joinedAt).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              passenger.status === 'ONBOARD' 
+                                ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-700'
+                                : passenger.status === 'DROPPED'
+                                ? isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                                : isDarkMode ? 'bg-yellow-900 text-yellow-300' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {passenger.status || 'WAITING'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
             );
           })}

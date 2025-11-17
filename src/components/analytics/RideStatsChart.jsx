@@ -34,11 +34,6 @@ const RideStatsChart = ({ data }) => {
     (type) => data.vehicleStats.rides[type]?.count || 0
   );
   
-  // Format data for revenue
-  const revenueData = vehicleTypes.map(
-    (type) => data.vehicleStats.rides[type]?.totalFare || 0
-  );
-  
   // Format data for distance
   const distanceData = vehicleTypes.map(
     (type) => data.vehicleStats.rides[type]?.totalDistance || 0
@@ -99,15 +94,6 @@ const RideStatsChart = ({ data }) => {
     },
   };
 
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "PHP",
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
-
   // Format distance
   const formatDistance = (value) => {
     return `${value.toFixed(1)} km`;
@@ -146,18 +132,14 @@ const RideStatsChart = ({ data }) => {
                 <tr>
                   <th className="px-4 py-3">Vehicle Type</th>
                   <th className="px-4 py-3">Rides</th>
-                  <th className="px-4 py-3">Revenue</th>
                   <th className="px-4 py-3">Distance</th>
-                  <th className="px-4 py-3">Avg. Fare</th>
                   <th className="px-4 py-3">Avg. Distance</th>
                 </tr>
               </thead>
               <tbody>
                 {vehicleTypes.map((type, index) => {
                   const rides = data.vehicleStats.rides[type]?.count || 0;
-                  const revenue = data.vehicleStats.rides[type]?.totalFare || 0;
                   const distance = data.vehicleStats.rides[type]?.totalDistance || 0;
-                  const avgFare = rides > 0 ? revenue / rides : 0;
                   const avgDistance = rides > 0 ? distance / rides : 0;
 
                   return (
@@ -169,9 +151,7 @@ const RideStatsChart = ({ data }) => {
                     >
                       <td className="px-4 py-3 font-medium">{vehicleLabels[index]}</td>
                       <td className="px-4 py-3">{rides}</td>
-                      <td className="px-4 py-3">{formatCurrency(revenue)}</td>
                       <td className="px-4 py-3">{formatDistance(distance)}</td>
-                      <td className="px-4 py-3">{formatCurrency(avgFare)}</td>
                       <td className="px-4 py-3">{formatDistance(avgDistance)}</td>
                     </tr>
                   );
@@ -181,15 +161,7 @@ const RideStatsChart = ({ data }) => {
                 }`}>
                   <td className="px-4 py-3">Total</td>
                   <td className="px-4 py-3">{data.totalRides || 0}</td>
-                  <td className="px-4 py-3">{formatCurrency(data.totalRevenue || 0)}</td>
                   <td className="px-4 py-3">{formatDistance(data.totalDistance || 0)}</td>
-                  <td className="px-4 py-3">
-                    {formatCurrency(
-                      data.completedRides > 0
-                        ? (data.totalRevenue || 0) / (data.completedRides || 1)
-                        : 0
-                    )}
-                  </td>
                   <td className="px-4 py-3">
                     {formatDistance(
                       data.completedRides > 0

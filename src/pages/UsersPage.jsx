@@ -305,13 +305,13 @@ const UsersPage = () => {
       if (hasDocuments) {
         // Has at least one document
         filtered = filtered.filter(user => {
-          return user.photo || user.schoolIdDocument || user.staffFacultyIdDocument || 
+          return user.photo || user.schoolIdDocument || 
                  user.driverLicense || user.cor;
         });
       } else {
         // Missing all documents
         filtered = filtered.filter(user => {
-          return !user.photo && !user.schoolIdDocument && !user.staffFacultyIdDocument && 
+          return !user.photo && !user.schoolIdDocument && 
                  !user.driverLicense && !user.cor;
         });
       }

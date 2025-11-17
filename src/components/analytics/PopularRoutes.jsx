@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, TrendingUp, DollarSign, ArrowRight } from "lucide-react";
+import { MapPin, Navigation, TrendingUp, ArrowRight } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import analyticsService from "../../services/analyticsService";
 
@@ -37,15 +37,6 @@ const PopularRoutes = ({ timeFilter = "all" }) => {
   useEffect(() => {
     fetchRoutesData();
   }, [timeFilter]);
-
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "PHP",
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
 
   // Format distance
   const formatDistance = (value) => {
@@ -247,12 +238,6 @@ const PopularRoutes = ({ timeFilter = "all" }) => {
                                 {formatDistance(item.avgDistance)}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="size-4 text-green-500" />
-                              <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                {formatCurrency(item.avgFare)} avg
-                              </span>
-                            </div>
                           </div>
                         </div>
                       ) : (
@@ -260,12 +245,6 @@ const PopularRoutes = ({ timeFilter = "all" }) => {
                           <h5 className={`font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                             {item._id}
                           </h5>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="size-4 text-green-500" />
-                            <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {formatCurrency(item.totalRevenue)} total revenue
-                            </span>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -300,21 +279,13 @@ const PopularRoutes = ({ timeFilter = "all" }) => {
             isDarkMode ? 'bg-gray-700 bg-opacity-30 border-gray-600' : 'bg-gray-50 border-gray-200'
           }`}
         >
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-2 gap-4 text-center">
             <div>
               <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 {currentData.reduce((sum, item) => sum + item.count, 0)}
               </p>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Total Rides
-              </p>
-            </div>
-            <div>
-              <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {formatCurrency(currentData.reduce((sum, item) => sum + (item.totalRevenue || 0), 0))}
-              </p>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Total Revenue
               </p>
             </div>
             <div>

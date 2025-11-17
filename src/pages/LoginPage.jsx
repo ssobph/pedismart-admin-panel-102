@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
@@ -12,12 +12,74 @@ const LoginPage = () => {
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("Invalid credentials");
   const [loading, setLoading] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState(0);
+  const [remainingTime, setRemainingTime] = useState(0);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
 
+  // Calculate lockout duration based on attempts (exponential backoff)
+  const calculateLockoutDuration = (attempts) => {
+    // 1st lockout (after 5 attempts): 1 minute
+    // 2nd lockout (after 10 attempts): 5 minutes
+    // 3rd lockout (after 15 attempts): 15 minutes
+    // 4th+ lockout: 30 minutes
+    const lockoutCycle = Math.floor(attempts / 5);
+    const durations = [60, 300, 900, 1800]; // in seconds
+    return durations[Math.min(lockoutCycle - 1, durations.length - 1)] * 1000; // convert to ms
+  };
+
+  // Check for existing lockout on mount
+  useEffect(() => {
+    const storedAttempts = parseInt(localStorage.getItem('admin_login_attempts') || '0');
+    const storedLockoutTime = parseInt(localStorage.getItem('admin_lockout_time') || '0');
+    
+    setLoginAttempts(storedAttempts);
+    
+    if (storedLockoutTime > Date.now()) {
+      setIsLocked(true);
+      setLockoutTime(storedLockoutTime);
+      setRemainingTime(Math.ceil((storedLockoutTime - Date.now()) / 1000));
+    }
+  }, []);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (isLocked && remainingTime > 0) {
+      const timer = setInterval(() => {
+        const timeLeft = Math.ceil((lockoutTime - Date.now()) / 1000);
+        if (timeLeft <= 0) {
+          setIsLocked(false);
+          setRemainingTime(0);
+          localStorage.removeItem('admin_lockout_time');
+        } else {
+          setRemainingTime(timeLeft);
+        }
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [isLocked, lockoutTime, remainingTime]);
+
+  // Format remaining time
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Check if account is locked
+    if (isLocked) {
+      setError(true);
+      setErrorMessage(`Too many failed attempts. Please try again in ${formatTime(remainingTime)}.`);
+      return;
+    }
+    
     setLoading(true);
     setError(false);
     
@@ -28,10 +90,21 @@ const LoginPage = () => {
       const success = await login(email, password);
       console.log("Login successful:", success);
       
+      // Reset attempts on successful login
+      localStorage.removeItem('admin_login_attempts');
+      localStorage.removeItem('admin_lockout_time');
+      setLoginAttempts(0);
+      
       // Redirect to dashboard
       navigate("/");
     } catch (err) {
       console.error("Login error details:", err);
+      
+      // Increment failed attempts
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+      localStorage.setItem('admin_login_attempts', newAttempts.toString());
+      
       let message = "Invalid credentials. Please check your email and password.";
       
       if (err.response) {
@@ -43,6 +116,23 @@ const LoginPage = () => {
         if (message.toLowerCase().includes('invalid') || message.toLowerCase().includes('incorrect')) {
           message = "Invalid credentials. Please check your email and password.";
         }
+      }
+      
+      // Check if we need to lock the account
+      if (newAttempts % 5 === 0) {
+        const lockDuration = calculateLockoutDuration(newAttempts);
+        const lockUntil = Date.now() + lockDuration;
+        
+        localStorage.setItem('admin_lockout_time', lockUntil.toString());
+        setLockoutTime(lockUntil);
+        setIsLocked(true);
+        setRemainingTime(Math.ceil(lockDuration / 1000));
+        
+        const minutes = Math.ceil(lockDuration / 60000);
+        message = `Too many failed login attempts (${newAttempts}). Account locked for ${minutes} minute${minutes > 1 ? 's' : ''}. Please try again later.`;
+      } else {
+        const attemptsLeft = 5 - (newAttempts % 5);
+        message = `Invalid credentials. ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining before temporary lockout.`;
       }
       
       setErrorMessage(message);
@@ -137,14 +227,16 @@ const LoginPage = () => {
 
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 flex items-center justify-center"
-            disabled={loading}
+            className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || isLocked}
           >
             {loading ? (
               <>
                 <Loader size={18} className="animate-spin mr-2" />
                 Signing In...
               </>
+            ) : isLocked ? (
+              `Locked (${formatTime(remainingTime)})`
             ) : (
               "Sign In"
             )}

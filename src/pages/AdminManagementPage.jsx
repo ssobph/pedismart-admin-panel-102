@@ -94,12 +94,23 @@ const AdminManagementPage = () => {
   };
 
   const handleToggleStatus = async (id) => {
+    const admin = admins.find(a => a._id === id);
+    if (!admin) return;
+    
+    const action = admin.isActive ? 'deactivate' : 'activate';
+    const confirmMessage = admin.isActive 
+      ? `Are you sure you want to deactivate ${admin.name}? They will not be able to log in until reactivated.`
+      : `Are you sure you want to activate ${admin.name}?`;
+    
+    if (!window.confirm(confirmMessage)) return;
+    
     try {
       await adminManagementService.toggleAdminStatus(id);
+      alert(`Admin ${action}d successfully`);
       fetchAdmins();
     } catch (error) {
       console.error("Error toggling admin status:", error);
-      alert(error.response?.data?.message || "Failed to toggle admin status");
+      alert(error.response?.data?.message || `Failed to ${action} admin`);
     }
   };
 
@@ -254,16 +265,16 @@ const AdminManagementPage = () => {
                           </button>
                           <button
                             onClick={() => handleToggleStatus(admin._id)}
-                            className={admin.isActive ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'}
-                            title={admin.isActive ? 'Deactivate' : 'Activate'}
+                            className={`${admin.isActive ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'} ${admin._id === currentUser?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={admin._id === currentUser?._id ? 'Cannot deactivate your own account' : (admin.isActive ? 'Deactivate' : 'Activate')}
                             disabled={admin._id === currentUser?._id}
                           >
                             <Power size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteAdmin(admin._id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
+                            className={`text-red-600 hover:text-red-900 ${admin._id === currentUser?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={admin._id === currentUser?._id ? 'Cannot delete your own account' : 'Delete'}
                             disabled={admin._id === currentUser?._id}
                           >
                             <Trash2 size={18} />
