@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Loader, Eye, EyeOff, ShieldAlert, Lock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -16,6 +16,8 @@ const LoginPage = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [lockoutTime, setLockoutTime] = useState(0);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState(5); // Track remaining attempts
+  const [showAttemptsWarning, setShowAttemptsWarning] = useState(false); // Show warning when attempts are low
   const navigate = useNavigate();
   const { login } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -35,8 +37,15 @@ const LoginPage = () => {
   useEffect(() => {
     const storedAttempts = parseInt(localStorage.getItem('admin_login_attempts') || '0');
     const storedLockoutTime = parseInt(localStorage.getItem('admin_lockout_time') || '0');
+    const storedRemainingAttempts = parseInt(localStorage.getItem('admin_remaining_attempts') || '5');
     
     setLoginAttempts(storedAttempts);
+    setRemainingAttempts(storedRemainingAttempts);
+    
+    // Show warning if attempts are low (3 or less)
+    if (storedRemainingAttempts <= 3 && storedRemainingAttempts > 0) {
+      setShowAttemptsWarning(true);
+    }
     
     if (storedLockoutTime > Date.now()) {
       setIsLocked(true);
@@ -93,46 +102,93 @@ const LoginPage = () => {
       // Reset attempts on successful login
       localStorage.removeItem('admin_login_attempts');
       localStorage.removeItem('admin_lockout_time');
+      localStorage.removeItem('admin_remaining_attempts');
       setLoginAttempts(0);
+      setRemainingAttempts(5);
+      setShowAttemptsWarning(false);
       
       // Redirect to dashboard
       navigate("/");
     } catch (err) {
       console.error("Login error details:", err);
       
-      // Increment failed attempts
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-      localStorage.setItem('admin_login_attempts', newAttempts.toString());
-      
       let message = "Invalid credentials. Please check your email and password.";
       
       if (err.response) {
         console.error("Error response:", err.response.data);
-        // Use server message if available, otherwise use default
-        message = err.response.data?.message || message;
+        const responseData = err.response.data;
         
-        // Standardize "Invalid credentials" message
-        if (message.toLowerCase().includes('invalid') || message.toLowerCase().includes('incorrect')) {
-          message = "Invalid credentials. Please check your email and password.";
+        // Check if account is locked by server
+        if (responseData.locked) {
+          const lockMinutes = responseData.lockoutRemainingMinutes || 15;
+          const lockUntil = Date.now() + (lockMinutes * 60 * 1000);
+          
+          localStorage.setItem('admin_lockout_time', lockUntil.toString());
+          localStorage.setItem('admin_remaining_attempts', '0');
+          setLockoutTime(lockUntil);
+          setIsLocked(true);
+          setRemainingTime(lockMinutes * 60);
+          setRemainingAttempts(0);
+          setShowAttemptsWarning(false);
+          
+          message = responseData.message || `Too many failed login attempts. Account locked for ${lockMinutes} minute${lockMinutes > 1 ? 's' : ''}. Please try again later.`;
+        } else if (responseData.remainingAttempts !== undefined) {
+          // Server tells us remaining attempts
+          const remaining = responseData.remainingAttempts;
+          setRemainingAttempts(remaining);
+          localStorage.setItem('admin_remaining_attempts', remaining.toString());
+          
+          // Show warning when attempts are low
+          if (remaining <= 3 && remaining > 0) {
+            setShowAttemptsWarning(true);
+          }
+          
+          if (remaining > 0) {
+            message = `Invalid email or password.`;
+          } else {
+            message = responseData.message || "Invalid credentials.";
+          }
+          
+          // Update local attempts counter
+          const newAttempts = 5 - remaining;
+          setLoginAttempts(newAttempts);
+          localStorage.setItem('admin_login_attempts', newAttempts.toString());
+        } else {
+          // Fallback to server message or default
+          message = responseData.message || message;
         }
-      }
-      
-      // Check if we need to lock the account
-      if (newAttempts % 5 === 0) {
-        const lockDuration = calculateLockoutDuration(newAttempts);
-        const lockUntil = Date.now() + lockDuration;
-        
-        localStorage.setItem('admin_lockout_time', lockUntil.toString());
-        setLockoutTime(lockUntil);
-        setIsLocked(true);
-        setRemainingTime(Math.ceil(lockDuration / 1000));
-        
-        const minutes = Math.ceil(lockDuration / 60000);
-        message = `Too many failed login attempts (${newAttempts}). Account locked for ${minutes} minute${minutes > 1 ? 's' : ''}. Please try again later.`;
       } else {
-        const attemptsLeft = 5 - (newAttempts % 5);
-        message = `Invalid credentials. ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining before temporary lockout.`;
+        // Network error or other issue - use local tracking
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
+        localStorage.setItem('admin_login_attempts', newAttempts.toString());
+        
+        if (newAttempts % 5 === 0) {
+          const lockDuration = calculateLockoutDuration(newAttempts);
+          const lockUntil = Date.now() + lockDuration;
+          
+          localStorage.setItem('admin_lockout_time', lockUntil.toString());
+          localStorage.setItem('admin_remaining_attempts', '0');
+          setLockoutTime(lockUntil);
+          setIsLocked(true);
+          setRemainingTime(Math.ceil(lockDuration / 1000));
+          setRemainingAttempts(0);
+          setShowAttemptsWarning(false);
+          
+          const minutes = Math.ceil(lockDuration / 60000);
+          message = `Too many failed login attempts. Account locked for ${minutes} minute${minutes > 1 ? 's' : ''}. Please try again later.`;
+        } else {
+          const attemptsLeft = 5 - (newAttempts % 5);
+          setRemainingAttempts(attemptsLeft);
+          localStorage.setItem('admin_remaining_attempts', attemptsLeft.toString());
+          
+          // Show warning when attempts are low
+          if (attemptsLeft <= 3) {
+            setShowAttemptsWarning(true);
+          }
+          
+          message = `Invalid credentials.`;
+        }
       }
       
       setErrorMessage(message);
@@ -181,6 +237,56 @@ const LoginPage = () => {
             Login to manage users and system settings
           </p>
         </div>
+
+        {/* Remaining Attempts Warning */}
+        <AnimatePresence>
+          {showAttemptsWarning && remainingAttempts > 0 && remainingAttempts <= 3 && !isLocked && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
+                remainingAttempts === 1 
+                  ? 'bg-red-500/20 border border-red-500 text-red-400' 
+                  : 'bg-yellow-500/20 border border-yellow-500 text-yellow-400'
+              }`}
+            >
+              <ShieldAlert size={20} />
+              <div className="flex-1">
+                <p className="font-medium text-sm">
+                  {remainingAttempts === 1 
+                    ? 'Last attempt remaining!' 
+                    : `Warning: ${remainingAttempts} attempts remaining`}
+                </p>
+                <p className="text-xs opacity-80">
+                  {remainingAttempts === 1 
+                    ? 'Your account will be locked for 15 minutes after this attempt.' 
+                    : 'Your account will be temporarily locked after 5 failed attempts.'}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Locked Account Warning */}
+        <AnimatePresence>
+          {isLocked && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 p-4 bg-red-500/20 border border-red-500 rounded-lg"
+            >
+              <div className="flex items-center gap-2 text-red-400 mb-2">
+                <Lock size={20} />
+                <span className="font-semibold">Account Temporarily Locked</span>
+              </div>
+              <p className="text-red-300 text-sm">
+                Too many failed login attempts. Please wait {formatTime(remainingTime)} before trying again.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -245,18 +351,47 @@ const LoginPage = () => {
 
         {/* Error notification */}
         <AnimatePresence>
-          {error && (
+          {error && !isLocked && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded-md flex items-center text-red-200"
+              className="mt-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded-md"
             >
-              <AlertCircle size={18} className="mr-2" />
-              <span>{errorMessage}</span>
+              <div className="flex items-center text-red-200 mb-1">
+                <AlertCircle size={18} className="mr-2 flex-shrink-0" />
+                <span className="font-medium">{errorMessage}</span>
+              </div>
+              {remainingAttempts > 0 && remainingAttempts < 5 && (
+                <p className="text-red-300 text-sm ml-6">
+                  {remainingAttempts} attempt{remainingAttempts > 1 ? 's' : ''} remaining before account lockout.
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Attempts indicator at bottom */}
+        {!isLocked && loginAttempts > 0 && (
+          <div className="mt-4 flex justify-center">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((attempt) => (
+                <div
+                  key={attempt}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    attempt <= loginAttempts
+                      ? 'bg-red-500'
+                      : isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}
+                  title={`Attempt ${attempt}`}
+                />
+              ))}
+              <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {remainingAttempts} of 3 attempts left
+              </span>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

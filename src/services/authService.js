@@ -5,26 +5,15 @@ import { API_BASE_URL } from '../config';
 export const authService = {
   // Login admin
   login: async (email, password) => {
+    console.log('Attempting login with:', { email });
+    
     try {
-      console.log('Attempting login with:', { email });
-      
-      // Try the new admin management login endpoint first
-      let response;
-      try {
-        response = await axios.post(`${API_BASE_URL}/api/admin-management/login`, {
-          email,
-          password
-        });
-        console.log('Admin management login successful:', response.data);
-      } catch (adminError) {
-        // Fallback to old admin login endpoint
-        console.log('Trying fallback admin login endpoint...');
-        response = await axios.post(`${API_BASE_URL}/api/auth/admin-login`, {
-          email,
-          password
-        });
-        console.log('Fallback login successful:', response.data);
-      }
+      // Use the admin management login endpoint (has attempt tracking)
+      const response = await axios.post(`${API_BASE_URL}/api/admin-management/login`, {
+        email,
+        password
+      });
+      console.log('Admin management login successful:', response.data);
       
       // Store tokens in localStorage
       localStorage.setItem('admin_access_token', response.data.access_token);
@@ -34,6 +23,7 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
+      // Re-throw the error with full response data (includes remainingAttempts, locked, etc.)
       throw error;
     }
   },

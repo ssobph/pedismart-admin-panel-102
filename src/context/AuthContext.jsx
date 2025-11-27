@@ -34,11 +34,13 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password);
       setIsAuthenticated(true);
       setCurrentUser(response.user);
-      navigate("/");
+      // Don't navigate here - let the LoginPage handle it
       return true;
     } catch (error) {
       console.error("Login failed:", error);
-      return false;
+      // Re-throw the error so LoginPage can access the response data
+      // (remainingAttempts, locked status, etc.)
+      throw error;
     }
   };
 

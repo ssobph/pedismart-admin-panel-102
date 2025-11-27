@@ -15,6 +15,13 @@ import LoginPage from "./pages/LoginPage";
 import RideHistoryPage from "./pages/RideHistoryPage";
 import AdminManagementPage from "./pages/AdminManagementPage";
 import ActivityLogPage from "./pages/ActivityLogPage";
+import TripLogsPage from "./pages/TripLogsPage";
+import RouteLogsPage from "./pages/RouteLogsPage";
+import CheckpointMonitoringPage from "./pages/CheckpointMonitoringPage";
+import AuthenticationLogsPage from "./pages/AuthenticationLogsPage";
+import CrashLogsPage from "./pages/CrashLogsPage";
+import FareManagementPage from "./pages/FareManagementPage";
+import AdminLoginMonitoringPage from "./pages/AdminLoginMonitoringPage";
 
 // Layout component for authenticated pages
 const DashboardLayout = () => {
@@ -50,7 +57,14 @@ function App() {
 					<Route path="/sales" element={<SalesPage />} />
 					<Route path="/orders" element={<OrdersPage />} />
 					<Route path="/analytics" element={<AnalyticsPage />} />
+					<Route path="/trip-logs" element={<TripLogsPage />} />
+					<Route path="/route-logs" element={<RouteLogsPage />} />
+					<Route path="/checkpoint-monitoring" element={<CheckpointMonitoringPage />} />
 					<Route path="/activity-log" element={<ActivityLogPage />} />
+					<Route path="/authentication-logs" element={<AuthenticationLogsPage />} />
+					<Route path="/crash-logs" element={<CrashLogsPage />} />
+					<Route path="/fare-management" element={<FareManagementPage />} />
+					<Route path="/admin-login-monitoring" element={<AdminLoginMonitoringPage />} />
 					<Route path="/admin-management" element={<AdminManagementPage />} />
 					<Route path="/settings" element={<SettingsPage />} />
 				</Route>
