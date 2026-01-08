@@ -18,7 +18,9 @@ import {
   ChevronUp,
   Navigation,
   Timer,
-  Route
+  Route,
+  StopCircle,
+  MapPinOff
 } from "lucide-react";
 import { tripLogsService } from "../services/tripLogsService";
 import { useTheme } from "../context/ThemeContext";
@@ -32,6 +34,7 @@ const TripLogsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("COMPLETED");
+  const [earlyStopFilter, setEarlyStopFilter] = useState("all"); // all, early, normal
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedRide, setExpandedRide] = useState(null);
@@ -44,7 +47,7 @@ const TripLogsPage = () => {
   // Apply filters when search term or filters change
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, statusFilter, startDate, endDate, rides]);
+  }, [searchTerm, statusFilter, earlyStopFilter, startDate, endDate, rides]);
 
   const fetchTripLogs = async () => {
     try {
@@ -68,6 +71,13 @@ const TripLogsPage = () => {
       filtered = filtered.filter(ride => ride.status === statusFilter);
     }
 
+    // Apply early stop filter
+    if (earlyStopFilter === "early") {
+      filtered = filtered.filter(ride => ride.earlyStop?.completedEarly === true);
+    } else if (earlyStopFilter === "normal") {
+      filtered = filtered.filter(ride => !ride.earlyStop?.completedEarly);
+    }
+
     // Apply date filters
     if (startDate) {
       filtered = filtered.filter(ride => new Date(ride.createdAt) >= new Date(startDate));
@@ -85,12 +95,14 @@ const TripLogsPage = () => {
         const otp = ride.otp || '';
         const pickupAddress = ride.pickup?.address?.toLowerCase() || '';
         const dropAddress = ride.drop?.address?.toLowerCase() || '';
+        const earlyStopAddress = ride.earlyStop?.address?.toLowerCase() || '';
         
         return customerName.includes(searchLower) ||
                riderName.includes(searchLower) ||
                otp.includes(searchLower) ||
                pickupAddress.includes(searchLower) ||
-               dropAddress.includes(searchLower);
+               dropAddress.includes(searchLower) ||
+               earlyStopAddress.includes(searchLower);
       });
     }
 
@@ -209,6 +221,7 @@ const TripLogsPage = () => {
             <li>• <strong>Pickup Time</strong> - When passenger is picked up</li>
             <li>• <strong>Dropoff Time</strong> - When passenger is dropped off</li>
             <li>• <strong>End Time</strong> - When trip is fully completed</li>
+            <li>• <strong>Early Stop</strong> - If passenger requested to stop before reaching original drop-off</li>
           </ul>
         </div>
 
@@ -230,7 +243,7 @@ const TripLogsPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className={`backdrop-blur-md shadow-lg rounded-xl p-6 border mb-6 ${isDarkMode ? 'bg-gray-800 bg-opacity-50 border-gray-700' : 'bg-white border-gray-200'}`}
         >
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
               <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -265,6 +278,22 @@ const TripLogsPage = () => {
                 <option value="SEARCHING_FOR_RIDER">Searching</option>
                 <option value="START">In Progress</option>
                 <option value="ARRIVED">Arrived</option>
+              </select>
+            </div>
+
+            {/* Early Stop Filter */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Completion Type
+              </label>
+              <select
+                value={earlyStopFilter}
+                onChange={(e) => setEarlyStopFilter(e.target.value)}
+                className={`w-full px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              >
+                <option value="all">All Completions</option>
+                <option value="early">Early Stop Only</option>
+                <option value="normal">Normal Completion</option>
               </select>
             </div>
 
@@ -383,8 +412,16 @@ const TripLogsPage = () => {
                           )}
                         </div>
                         
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(ride.status)} border`}>
-                          {ride.status.replace(/_/g, ' ')}
+                        <div className="flex items-center gap-2">
+                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(ride.status)} border`}>
+                            {ride.status.replace(/_/g, ' ')}
+                          </div>
+                          {ride.earlyStop?.completedEarly && (
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${isDarkMode ? 'bg-orange-900 bg-opacity-30 border-orange-700 text-orange-400' : 'bg-orange-100 border-orange-300 text-orange-700'} border`}>
+                              <StopCircle size={12} />
+                              Early Stop
+                            </div>
+                          )}
                         </div>
                         
                         {isExpanded ? (
@@ -605,14 +642,72 @@ const TripLogsPage = () => {
                               <div className="flex items-start">
                                 <MapPin size={16} className={`mr-2 mt-1 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
                                 <div className="flex-1">
-                                  <span className={`text-xs font-medium ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>DROP-OFF</span>
+                                  <span className={`text-xs font-medium ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
+                                    {ride.earlyStop?.completedEarly ? 'ORIGINAL DROP-OFF' : 'DROP-OFF'}
+                                  </span>
                                   <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                     {ride.drop?.address}
                                   </p>
                                 </div>
                               </div>
                             </div>
+                            
+                            {/* Early Stop Location - Only show if ride was completed early */}
+                            {ride.earlyStop?.completedEarly && (
+                              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900 bg-opacity-20 border border-orange-700' : 'bg-orange-50 border border-orange-200'}`}>
+                                <div className="flex items-start">
+                                  <StopCircle size={16} className={`mr-2 mt-1 flex-shrink-0 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs font-medium ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>ACTUAL STOP LOCATION</span>
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-orange-700 text-orange-200' : 'bg-orange-200 text-orange-800'}`}>
+                                        Early Stop
+                                      </span>
+                                    </div>
+                                    <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                      {ride.earlyStop.address || 'Address not available'}
+                                    </p>
+                                    <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                      <span>Requested by: <strong className="capitalize">{ride.earlyStop.requestedBy || 'Unknown'}</strong></span>
+                                      {ride.earlyStop.requestedAt && (
+                                        <span className="ml-3">
+                                          at {new Date(ride.earlyStop.requestedAt).toLocaleTimeString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {ride.earlyStop.reason && (
+                                      <p className={`mt-1 text-xs italic ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                        Reason: {ride.earlyStop.reason}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
+
+                          {/* Cancellation Reason - Only show for cancelled rides */}
+                          {ride.status === "CANCELLED" && ride.cancellationReason && (
+                            <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-red-900 bg-opacity-20 border border-red-700' : 'bg-red-50 border border-red-200'}`}>
+                              <div className="flex items-start">
+                                <XCircle size={16} className={`mr-2 mt-1 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                                <div className="flex-1">
+                                  <span className={`text-xs font-medium ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>CANCELLATION REASON</span>
+                                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    {ride.cancellationReason}
+                                  </p>
+                                  <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    <span>Cancelled by: <strong className="capitalize">{ride.cancelledBy || 'Unknown'}</strong></span>
+                                    {ride.cancelledAt && (
+                                      <span className="ml-3">
+                                        at {new Date(ride.cancelledAt).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* OTP */}
                           {ride.otp && (
